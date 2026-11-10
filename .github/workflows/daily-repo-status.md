@@ -33,7 +33,7 @@ tools:
         max-calls: 1
       - name: pull_request_read
         max-calls: 1
-    allowed-repos: current
+    allowed-repos: ${{ github.repository }}
     min-integrity: none
 
 safe-outputs:
