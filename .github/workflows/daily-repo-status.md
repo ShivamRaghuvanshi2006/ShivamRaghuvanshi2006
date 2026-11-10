@@ -14,16 +14,16 @@ permissions:
   issues: read
   pull-requests: read
 
-network: defaults
+network:
+  allowed:
+    - defaults
+    - api.groq.com
 
 tools:
   bash: ["cat", "ls", "find", "grep", "head", "tail", "wc"]
   github:
-    # If in a public repo, setting `lockdown: false` allows
-    # reading issues, pull requests and comments from 3rd-parties
-    # If in a private repo this has no particular effect.
     lockdown: false
-    min-integrity: none # This workflow is allowed to examine and comment on any issues
+    min-integrity: none
 
 safe-outputs:
   mentions: false
@@ -32,7 +32,15 @@ safe-outputs:
     title-prefix: "[repo-status] "
     labels: [report, daily-status]
     close-older-issues: true
-engine: gemini
+
+engine:
+  id: copilot
+  env:
+    COPILOT_PROVIDER_BASE_URL: https://api.groq.com/openai/v1
+    COPILOT_MODEL: openai/gpt-oss-20b
+    COPILOT_PROVIDER_MODEL_ID: openai/gpt-oss-20b
+    COPILOT_PROVIDER_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+    COPILOT_PROVIDER_TYPE: openai
 
 source: githubnext/agentics/workflows/repo-status.md@139fa09ef17cde4135e696ff8e7af09bc5ddfa6e
 ---
@@ -50,12 +58,12 @@ Create an upbeat daily status report for the repo as a GitHub issue.
 
 ## Style
 
-- Be positive, encouraging, and helpful 🌟
-- Use emojis moderately for engagement
-- Keep it concise - adjust length based on actual activity
+- Be positive, encouraging, and helpful.
+- Use emojis moderately for engagement.
+- Keep it concise - adjust length based on actual activity.
 
 ## Process
 
-1. Gather recent activity from the repository
-2. Study the repository, its issues and its pull requests
-3. Create a new GitHub issue with your findings and insights
+1. Gather recent activity from the repository.
+2. Study the repository, its issues and its pull requests.
+3. Create a new GitHub issue with your findings and insights.
