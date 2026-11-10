@@ -1,9 +1,7 @@
 ---
 description: |
-  This workflow creates daily repo status reports. It gathers recent repository
-  activity (issues, PRs, discussions, releases, code changes) and generates
-  engaging GitHub issues with productivity insights, community highlights,
-  and project recommendations.
+  This workflow creates concise daily repo status reports from recent issues,
+  pull requests, commits, and releases.
 
 on:
   schedule: daily
@@ -22,7 +20,20 @@ network:
 tools:
   bash: ["cat", "ls", "find", "grep", "head", "tail", "wc"]
   github:
-    lockdown: false
+    allowed:
+      - name: list_issues
+        max-calls: 1
+      - name: list_pull_requests
+        max-calls: 1
+      - name: list_commits
+        max-calls: 1
+      - name: list_releases
+        max-calls: 1
+      - name: issue_read
+        max-calls: 1
+      - name: pull_request_read
+        max-calls: 1
+    allowed-repos: ${{ github.repository }}
     min-integrity: none
 
 safe-outputs:
@@ -47,23 +58,26 @@ source: githubnext/agentics/workflows/repo-status.md@139fa09ef17cde4135e696ff8e7
 
 # Repo Status
 
-Create an upbeat daily status report for the repo as a GitHub issue.
+Create a concise daily status report for this repository as a GitHub issue.
 
 ## What to include
 
-- Recent repository activity (issues, PRs, discussions, releases, code changes)
-- Progress tracking, goal reminders and highlights
-- Project status and recommendations
-- Actionable next steps for maintainers
+- Activity from the last 7 days: issues, pull requests, commits, and releases.
+- Meaningful progress, blockers, and notable changes.
+- Two or three practical next steps for maintainers.
 
-## Style
+## Scope and context limits
 
-- Be positive, encouraging, and helpful.
-- Use emojis moderately for engagement.
-- Keep it concise - adjust length based on actual activity.
+- Use only the six explicitly available GitHub tools.
+- Review one page/list per activity type; do not paginate or repeatedly fetch data.
+- Read an individual issue or pull request only when its summary is necessary to understand a significant event.
+- Do not scan the whole repository or fetch large files.
+- If an activity type has no recent entries, say so briefly rather than searching further.
+- Keep the final report compact and factual. Do not invent activity, progress, or recommendations unsupported by repository evidence.
 
 ## Process
 
-1. Gather recent activity from the repository.
-2. Study the repository, its issues and its pull requests.
-3. Create a new GitHub issue with your findings and insights.
+1. Gather recent activity using the available list tools.
+2. Inspect at most one important issue and one important pull request if needed.
+3. Summarize verified activity, blockers, and next steps.
+4. Create one GitHub issue with the report.
