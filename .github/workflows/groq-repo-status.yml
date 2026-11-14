@@ -17,6 +17,7 @@ jobs:
       - name: Generate repository report
         env:
           GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
           GROQ_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         shell: bash
         run: |
@@ -72,6 +73,7 @@ jobs:
           report="$(jq -er '.choices[0].message.content | select(type == "string" and length > 0)' <<< "$response")"
 
           gh issue create \
+            --repo "$GITHUB_REPOSITORY" \
             --title "[repo-status] $(date -u +%Y-%m-%d)" \
             --body "$report"
 
