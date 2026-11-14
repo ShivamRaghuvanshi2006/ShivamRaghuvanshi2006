@@ -113,13 +113,8 @@ jobs:
                   content = file_path.read_text(encoding="utf-8")
               except (OSError, UnicodeError):
                   continue
-              safe_lines = []
-              for line in content.splitlines():
-                  if any(pattern.search(line) for pattern in secret_patterns):
-                      safe_lines.append("[REDACTED: possible credential]")
-                  else:
-                      safe_lines.append(line)
-              content = "\n".join(safe_lines)
+              if any(pattern.search(line) for line in content.splitlines()):
+                  continue
               if total + len(content) > 26000 or len(selected) >= 12:
                   break
               selected.append({"path": str(path), "content": content})
