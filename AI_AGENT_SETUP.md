@@ -43,7 +43,7 @@ The existing `GEMINI_API_KEY` Actions secret is currently used to hold the Groq 
 - The target must belong to `ShivamRaghuvanshi2006`.
 - The agent may replace at most two existing source/documentation files.
 - It cannot create/delete/rename files or edit GitHub workflows, secrets, dependency manifests, lockfiles, build/deployment configuration, permissions, or licensing.
-- Possible credentials are excluded or redacted from the code context sent to Groq.
+- Files containing credential-like values are excluded from the code context sent to Groq.
 - It runs whitespace checks, available Python/JavaScript syntax checks, and the Python unittest suite when applicable.
 - It creates a separate branch and a **draft** pull request. It never merges.
 - If the task is ambiguous, unsafe, too large, or the model cannot produce a valid bounded patch, the workflow stops without opening a PR.
