@@ -47,7 +47,7 @@ jobs:
           audit_data="$(printf '%s\n' "${records[@]}" | jq -s '.')"
           today="$(date -u +%Y-%m-%d)"
 
-          request="$(jq -n --argjson data "$audit_data" '{
+          request="$(jq -n --argjson data "$audit_data" --arg owner "$owner" --arg today "$today" '{
             model:"openai/gpt-oss-20b",
             max_completion_tokens:1200,
             messages:[
