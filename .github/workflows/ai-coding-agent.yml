@@ -157,12 +157,14 @@ jobs:
           model_output="$(jq -er '.choices[0].message.content | select(type == "string" and length > 0)' <<< "$response")"
           printf '%s' "$model_output" > "$RUNNER_TEMP/model-output.json"
 
-          python - "$RUNNER_TEMP/model-output.json" "$RUNNER_TEMP/change-summary.txt" <<'PY'
+          python - "$RUNNER_TEMP/model-output.json" "$RUNNER_TEMP/change-summary.txt" "$RUNNER_TEMP/context.json" <<'PY'
           import json
           import pathlib
           import sys
 
           payload = json.loads(pathlib.Path(sys.argv[1]).read_text(encoding="utf-8"))
+          context = json.loads(pathlib.Path(sys.argv[3]).read_text(encoding="utf-8"))
+          allowed_paths = {item["path"] for item in context["files"]}
           files = payload.get("files")
           if not isinstance(files, list) or not 1 <= len(files) <= 2:
               raise SystemExit("Agent returned no safe patch or exceeded the two-file limit.")
@@ -174,6 +176,8 @@ jobs:
               path = pathlib.PurePosixPath(raw)
               if not raw or path.is_absolute() or ".." in path.parts:
                   raise SystemExit(f"Rejected unsafe path: {raw!r}")
+              if raw not in allowed_paths or raw in changed:
+                  raise SystemExit(f"Agent may only modify unique files supplied in its context: {raw}")
               if any(part in {".git", ".github", "node_modules", "vendor", "dist", "build", "target"} for part in path.parts):
                   raise SystemExit(f"Rejected protected path: {raw}")
               if path.name.lower().startswith((".env", "secret", "credential")):
