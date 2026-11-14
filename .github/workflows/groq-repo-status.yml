@@ -1,0 +1,78 @@
+name: Daily Repo Status
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "30 3 * * *"
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: read
+
+jobs:
+  report:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Generate repository report
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GROQ_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [ -z "$GROQ_API_KEY" ]; then
+            echo "Missing GEMINI_API_KEY repository secret."
+            exit 1
+          fi
+
+          since="$(date -u -d '7 days ago' '+%Y-%m-%dT%H:%M:%SZ')"
+
+          issues_raw="$(gh api "repos/$GITHUB_REPOSITORY/issues?state=all&since=$since&per_page=10")"
+          pulls_raw="$(gh api "repos/$GITHUB_REPOSITORY/pulls?state=all&sort=updated&direction=desc&per_page=10")"
+          commits_raw="$(gh api "repos/$GITHUB_REPOSITORY/commits?since=$since&per_page=10")"
+          releases_raw="$(gh api "repos/$GITHUB_REPOSITORY/releases?per_page=5")"
+
+          issues="$(jq --arg since "$since" '[.[] | select(has("pull_request") | not) | select(.updated_at >= $since) | {number,title,state,url:.html_url}]' <<< "$issues_raw")"
+          pulls="$(jq --arg since "$since" '[.[] | select(.updated_at >= $since) | {number,title,state,url:.html_url}]' <<< "$pulls_raw")"
+          commits="$(jq '[.[] | {sha:(.sha[:8]),message:(.commit.message | split("\n")[0]),date:.commit.author.date}]' <<< "$commits_raw")"
+          releases="$(jq --arg since "$since" '[.[] | select((.published_at // "") >= $since) | {name,tag_name,published_at,url:.html_url}]' <<< "$releases_raw")"
+
+          activity="$(jq -n \
+            --argjson issues "$issues" \
+            --argjson pulls "$pulls" \
+            --argjson commits "$commits" \
+            --argjson releases "$releases" \
+            '{issues:$issues,pull_requests:$pulls,commits:$commits,releases:$releases}')"
+
+          request="$(jq -n \
+            --argjson activity "$activity" \
+            '{
+              model:"openai/gpt-oss-20b",
+              max_completion_tokens:700,
+              messages:[
+                {
+                  role:"system",
+                  content:"Write a concise factual GitHub repository report using only the supplied JSON. Never invent activity or blockers. Mention empty categories briefly. Include two or three useful next steps only when supported by evidence. Use Markdown and stay under 350 words."
+                },
+                {
+                  role:"user",
+                  content:("Summarize the last seven days of repository activity:\n" + ($activity | tojson))
+                }
+              ]
+            }')"
+
+          response="$(curl --fail-with-body --silent --show-error \
+            https://api.groq.com/openai/v1/chat/completions \
+            -H "Authorization: Bearer $GROQ_API_KEY" \
+            -H "Content-Type: application/json" \
+            -d "$request")"
+
+          report="$(jq -er '.choices[0].message.content | select(type == "string" and length > 0)' <<< "$response")"
+
+          gh issue create \
+            --title "[repo-status] $(date -u +%Y-%m-%d)" \
+            --body "$report"
+
+          echo "Repository report successfully created."
