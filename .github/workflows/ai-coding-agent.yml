@@ -120,13 +120,20 @@ jobs:
               selected.append({"path": str(path), "content": content})
               total += len(content)
 
+          issue_body = (issue.get("body") or "")[:5000]
+          if any(pattern.search(line) for pattern in secret_patterns for line in issue_body.splitlines()):
+              issue_body = "[REDACTED: issue body contains credential-like content]"
+          issue_title = issue.get("title") or "Issue task"
+          if any(pattern.search(issue_title) for pattern in secret_patterns):
+              issue_title = "[REDACTED: issue title contains credential-like content]"
+
           context = {
               "repository": sys.argv[3],
               "default_branch": sys.argv[4],
               "issue": {
                   "number": issue["number"],
-                  "title": issue["title"],
-                  "body": (issue.get("body") or "")[:5000],
+                  "title": issue_title,
+                  "body": issue_body,
               },
               "files": selected,
           }
@@ -172,6 +179,8 @@ jobs:
           allowed = {".py", ".js", ".jsx", ".ts", ".tsx", ".java", ".go", ".rs", ".html", ".css", ".md"}
           changed = []
           for item in files:
+              if not isinstance(item, dict):
+                  raise SystemExit("Agent returned a malformed file entry.")
               raw = item.get("path", "")
               path = pathlib.PurePosixPath(raw)
               if not raw or path.is_absolute() or ".." in path.parts:
@@ -193,8 +202,11 @@ jobs:
               target.write_text(content, encoding="utf-8")
               changed.append(raw)
 
+          summary = payload.get("summary")
+          if not isinstance(summary, str):
+              summary = "Small issue-scoped code change"
           pathlib.Path(sys.argv[2]).write_text(
-              (payload.get("summary") or "Small issue-scoped code change") + "\nChanged files: " + ", ".join(changed),
+              summary + "\nChanged files: " + ", ".join(changed),
               encoding="utf-8",
           )
           PY
