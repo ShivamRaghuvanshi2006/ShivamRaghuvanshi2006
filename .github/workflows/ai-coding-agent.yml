@@ -22,10 +22,10 @@ jobs:
     permissions:
       contents: read
     env:
-      GH_TOKEN: \${{ secrets.GH_AGENT_TOKEN }}
-      GROQ_API_KEY: \${{ secrets.GEMINI_API_KEY }}
-      TARGET_REPOSITORY: \${{ inputs.repository }}
-      ISSUE_NUMBER: \${{ inputs.issue_number }}
+      GH_TOKEN: ${{ secrets.GH_AGENT_TOKEN }}
+      GROQ_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      TARGET_REPOSITORY: ${{ inputs.repository }}
+      ISSUE_NUMBER: ${{ inputs.issue_number }}
     steps:
       - name: Generate, validate, and propose a small fix
         shell: bash
@@ -68,9 +68,10 @@ jobs:
           git switch -c "$branch"
 
           printf '%s' "$issue_json" > "$RUNNER_TEMP/issue.json"
-          python - "$RUNNER_TEMP/issue.json" "$RUNNER_TEMP/context.json" <<'PY'
+          python - "$RUNNER_TEMP/issue.json" "$RUNNER_TEMP/context.json" "$TARGET_REPOSITORY" "$default_branch" <<'PY'
           import json
           import pathlib
+          import re
           import subprocess
           import sys
 
@@ -78,6 +79,11 @@ jobs:
           tracked = subprocess.check_output(["git", "ls-files", "-z"]).decode().split("\0")
           allowed = {".py", ".js", ".jsx", ".ts", ".tsx", ".java", ".go", ".rs", ".html", ".css", ".md"}
           excluded = {".git", ".github", "node_modules", "vendor", "dist", "build", "target", "__pycache__"}
+          secret_patterns = [
+              re.compile(r"(?i)(api[_-]?key|secret|token|password|authorization)\s*[:=]"),
+              re.compile(r"\b(?:gh[pousr]_[A-Za-z0-9]{20,}|AKIA[0-9A-Z]{16}|AIza[0-9A-Za-z_-]{30,}|sk-[A-Za-z0-9_-]{20,})\b"),
+              re.compile(r"-----BEGIN [A-Z ]*PRIVATE KEY-----"),
+          ]
           selected = []
           total = 0
 
@@ -95,7 +101,7 @@ jobs:
                   continue
               if path.suffix.lower() not in allowed:
                   continue
-              if path.name.lower() in {"package-lock.json", "pnpm-lock.yaml", "yarn.lock"}:
+              if path.name.lower().startswith((".env", "secret", "credential")):
                   continue
               candidates.append(path)
 
@@ -107,14 +113,21 @@ jobs:
                   content = file_path.read_text(encoding="utf-8")
               except (OSError, UnicodeError):
                   continue
+              safe_lines = []
+              for line in content.splitlines():
+                  if any(pattern.search(line) for pattern in secret_patterns):
+                      safe_lines.append("[REDACTED: possible credential]")
+                  else:
+                      safe_lines.append(line)
+              content = "\n".join(safe_lines)
               if total + len(content) > 26000 or len(selected) >= 12:
                   break
               selected.append({"path": str(path), "content": content})
               total += len(content)
 
           context = {
-              "repository": issue["repository"]["full_name"],
-              "default_branch": issue["base"]["ref"] if "base" in issue else None,
+              "repository": sys.argv[3],
+              "default_branch": sys.argv[4],
               "issue": {
                   "number": issue["number"],
                   "title": issue["title"],
@@ -136,7 +149,7 @@ jobs:
               },
               {
                 role:"user",
-                content:("Implement the task in this issue. Repository snapshot follows as JSON:\\n" + ($context | tojson))
+                content:("Implement the task in this issue. Repository snapshot follows as JSON:\n" + ($context | tojson))
               }
             ]
           }')"
@@ -168,6 +181,8 @@ jobs:
                   raise SystemExit(f"Rejected unsafe path: {raw!r}")
               if any(part in {".git", ".github", "node_modules", "vendor", "dist", "build", "target"} for part in path.parts):
                   raise SystemExit(f"Rejected protected path: {raw}")
+              if path.name.lower().startswith((".env", "secret", "credential")):
+                  raise SystemExit(f"Rejected sensitive path: {raw}")
               if path.suffix.lower() not in allowed:
                   raise SystemExit(f"Rejected file type: {raw}")
               target = pathlib.Path(str(path))
@@ -194,18 +209,18 @@ jobs:
 
           while IFS= read -r file; do
             case "$file" in
-              *.py) python -m py_compile "$file" ;;
+              *.py) python -c 'import ast, pathlib, sys; ast.parse(pathlib.Path(sys.argv[1]).read_text(encoding="utf-8"))' "$file" ;;
               *.js) node --check "$file" ;;
             esac
           done <<< "$changed_files"
 
           if [ -d tests ] && grep -qE '\.py$' <<< "$changed_files"; then
-            python -m unittest discover -s tests -v
+            PYTHONDONTWRITEBYTECODE=1 python -m unittest discover -s tests -v
           fi
 
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -- $changed_files
+          git add -A
           git commit -m "AI proposal: issue #$ISSUE_NUMBER"
           git -c "http.extraheader=AUTHORIZATION: basic $auth_header" push origin "$branch"
 
