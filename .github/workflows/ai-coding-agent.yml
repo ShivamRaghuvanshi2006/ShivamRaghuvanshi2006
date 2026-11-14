@@ -58,6 +58,9 @@ jobs:
           fi
 
           issue_title="$(jq -r '.title' <<< "$issue_json")"
+          if [[ "$issue_title" =~ (api[_-]?key|secret|token|password|authorization)[[:space:]]*[:=]|gh[pousr]_[[:alnum:]]{20,}|AKIA[0-9A-Z]{16}|sk-[[:alnum:]_-]{20,} ]]; then
+            issue_title="[redacted issue title]"
+          fi
           branch="ai-agent/issue-$ISSUE_NUMBER-$GITHUB_RUN_ID"
           auth_header="$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)"
 
