@@ -116,7 +116,7 @@ jobs:
                   content = file_path.read_text(encoding="utf-8")
               except (OSError, UnicodeError):
                   continue
-              if any(pattern.search(line) for line in content.splitlines()):
+              if any(pattern.search(line) for pattern in secret_patterns for line in content.splitlines()):
                   continue
               if total + len(content) > 26000 or len(selected) >= 12:
                   break
