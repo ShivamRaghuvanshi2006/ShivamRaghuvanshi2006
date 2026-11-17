@@ -9,8 +9,8 @@ I build software projects to understand how things work, solve practical problem
 ### [LeetNudge](https://github.com/ShivamRaghuvanshi2006/LeetNudge)
 A DSA practice platform for organising problems by topic and difficulty and keeping track of learning progress.
 
-### [Smart Queue System](https://github.com/ShivamRaghuvanshi2006/Smart-Queue-System-)
-A virtual queue project covering queue management, estimated waiting times, and real-time updates.
+### [LeetCode Solutions](https://github.com/ShivamRaghuvanshi2006/DSA-leetcode-)
+A collection of problem solutions organised by LeetCode ID, with implementations in Python, Java, and C++.
 
 ### [PDForge](https://github.com/ShivamRaghuvanshi2006/PDForge)
 A web-based PDF editor project with a focus on document workflows and a simple interface.
