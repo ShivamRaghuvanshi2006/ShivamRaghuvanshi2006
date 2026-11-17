@@ -2,21 +2,21 @@
 
 IT engineering student at Maharaja Agrasen Institute of Technology, Delhi.
 
-I build software projects to learn how things work, solve practical problems, and get better at writing reliable code. I’m currently focused on Java, web development, data structures, and core computer science.
+I build software projects to understand how things work, solve practical problems, and improve my coding skills. I’m currently focused on Java, web development, data structures, and core computer science.
 
 ## Projects
 
 ### [LeetNudge](https://github.com/ShivamRaghuvanshi2006/LeetNudge)
-A DSA practice platform focused on helping learners build consistency, track progress, and work through problems by topic and difficulty.
+A DSA practice platform for organising problems by topic and difficulty and keeping track of learning progress.
 
-### [Smart Queue System](https://github.com/ShivamRaghuvanshi2006/Smart-Queue-System)
-A virtual queue project that explores queue management, estimated waiting times, and real-time updates.
+### [Smart Queue System](https://github.com/ShivamRaghuvanshi2006/Smart-Queue-System-)
+A virtual queue project covering queue management, estimated waiting times, and real-time updates.
 
 ### [PDForge](https://github.com/ShivamRaghuvanshi2006/PDForge)
-A web-based project for working with PDF documents.
+A web-based PDF editor project with a focus on document workflows and a simple interface.
 
 ### [shutdown-watch](https://github.com/ShivamRaghuvanshi2006/shutdown-watch)
-A utility project for monitoring service availability and handling shutdown-related checks.
+A networking project that checks connectivity across layers and explores offline messaging during internet shutdowns.
 
 ## Technologies
 
@@ -24,7 +24,7 @@ A utility project for monitoring service availability and handling shutdown-rela
 - **Web:** HTML, CSS
 - **Tools:** Git, GitHub, Figma
 
-I’m still building depth in these areas, so this list reflects what I’m working with rather than a claim of expertise in every tool.
+I’m continuing to build experience with these tools, so this list reflects what I have worked with rather than expertise in every area.
 
 ## Currently learning
 
