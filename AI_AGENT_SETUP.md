@@ -28,7 +28,7 @@ The coding workflow needs a fine-grained GitHub Personal Access Token because th
 6. In this profile repository, open **Settings → Secrets and variables → Actions → New repository secret**.
 7. Name the secret `GH_AGENT_TOKEN` and paste the token value.
 
-The existing `GEMINI_API_KEY` Actions secret is used to hold the Groq API key for backwards compatibility. Keep it private; workflows read it only from Actions secrets.
+The workflows now prefer an Actions secret named `GROQ_API_KEY` and fall back to the legacy `GEMINI_API_KEY` secret. You can keep the existing secret working while adding `GROQ_API_KEY`; both must contain a Groq API key. Never paste either key into chat or commit it.
 
 ## Running the coding agent
 
