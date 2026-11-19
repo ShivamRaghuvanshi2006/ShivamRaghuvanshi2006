@@ -16,9 +16,14 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: ai-coding-agent-${{ inputs.repository }}-${{ inputs.issue_number }}
+  cancel-in-progress: false
+
 jobs:
   propose-fix:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     permissions:
       contents: read
     env:
@@ -229,8 +234,28 @@ jobs:
             esac
           done <<< "$changed_files"
 
-          if [ -d tests ] && grep -qE '\.py$' <<< "$changed_files"; then
-            PYTHONDONTWRITEBYTECODE=1 python -m unittest discover -s tests -v
+          if grep -qE '\.py
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "AI proposal: issue #$ISSUE_NUMBER"
+          git -c "http.extraheader=AUTHORIZATION: basic $auth_header" push origin "$branch"
+
+          summary="$(cat "$RUNNER_TEMP/change-summary.txt")"
+          gh pr create \
+            --repo "$TARGET_REPOSITORY" \
+            --base "$default_branch" \
+            --head "$branch" \
+            --draft \
+            --title "[AI draft] $issue_title" \
+            --body "$(printf '## AI-generated proposal\n\n%s\n\nCloses #%s\n\n- Created on a separate branch; nothing was merged.\n- Diff whitespace checks and available syntax/unit checks ran before the PR was opened.\n- Please review the diff and CI results before merging.' "$summary" "$ISSUE_NUMBER")"
+ <<< "$changed_files"; then
+            if [ -d tests ]; then
+              PYTHONDONTWRITEBYTECODE=1 python -m unittest discover -s tests -v
+            elif [ -d test ]; then
+              PYTHONDONTWRITEBYTECODE=1 python -m unittest discover -s test -v
+            fi
           fi
 
           git config user.name "github-actions[bot]"
