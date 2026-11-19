@@ -1,22 +1,22 @@
 # AI GitHub Agent Setup
 
-This repository contains a lightweight GitHub automation setup powered by Groq.
+This repository contains a cautious GitHub automation system powered by Groq.
 
 ## Workflows
 
-| Workflow | What it does | Schedule |
+| Workflow | Purpose | Schedule |
 |---|---|---|
-| Daily Repo Status | Summarizes recent activity in this profile repository and opens/updates a status issue | Daily, 09:00 IST |
-| AI Repository Audit | Reads up to 10 recently updated public, non-fork repositories and posts ranked, evidence-based improvements here | Monday, 09:30 IST |
-| AI Coding Agent | Takes one issue from a selected repository, proposes a small change on a new branch, runs available checks, and opens a draft PR | Manual dispatch |
+| Daily Repo Status | Summarises activity and health signals for this profile repository; updates one dated issue rather than creating duplicates on reruns | Daily, scheduled at 03:30 UTC (09:00 IST) |
+| AI Repository Audit | Audits public, non-fork repositories owned by the account; reviews root structure, README excerpts, open issues, recent commits and recent Actions runs | Monday, scheduled at 04:00 UTC (09:30 IST) |
+| AI Coding Agent | Proposes a small issue-scoped code change on a separate branch, runs bounded checks and opens a draft PR | Manual dispatch |
 
-The audit is read-only. It does not execute repository code. The coding workflow never merges a pull request.
+GitHub may delay scheduled workflows. The audit is read-only and does not execute repository code. The coding workflow never merges a pull request.
 
 ## One-time setup for cross-repository coding
 
 The coding workflow needs a fine-grained GitHub Personal Access Token because the default `GITHUB_TOKEN` cannot write to other repositories.
 
-1. On GitHub, open **Settings → Developer settings → Personal access tokens → Fine-grained tokens**.
+1. Open **Settings → Developer settings → Personal access tokens → Fine-grained tokens**.
 2. Create a token with your account as the resource owner.
 3. Select only the repositories the agent should be allowed to modify.
 4. Grant these repository permissions:
@@ -28,7 +28,7 @@ The coding workflow needs a fine-grained GitHub Personal Access Token because th
 6. In this profile repository, open **Settings → Secrets and variables → Actions → New repository secret**.
 7. Name the secret `GH_AGENT_TOKEN` and paste the token value.
 
-The existing `GEMINI_API_KEY` Actions secret is currently used to hold the Groq API key. Keep it private; the workflow only reads it from Actions secrets.
+The existing `GEMINI_API_KEY` Actions secret is used to hold the Groq API key for backwards compatibility. Keep it private; workflows read it only from Actions secrets.
 
 ## Running the coding agent
 
@@ -42,12 +42,27 @@ The existing `GEMINI_API_KEY` Actions secret is currently used to hold the Groq 
 
 - The target must belong to `ShivamRaghuvanshi2006`.
 - The agent may replace at most two existing source/documentation files.
-- It cannot create/delete/rename files or edit GitHub workflows, secrets, dependency manifests, lockfiles, build/deployment configuration, permissions, or licensing.
+- It cannot create, rename or delete files, or edit GitHub workflows, secrets, dependency manifests, lockfiles, build/deployment configuration, permissions or licensing.
 - Files containing credential-like values are excluded from the code context sent to Groq.
 - It runs whitespace checks, available Python/JavaScript syntax checks, and the Python unittest suite when applicable.
 - It creates a separate branch and a **draft** pull request. It never merges.
 - If the task is ambiguous, unsafe, too large, or the model cannot produce a valid bounded patch, the workflow stops without opening a PR.
 
-## Current scope
+## Phase completion tracker
 
-The audit workflow reads public repositories only and examines the 10 most recently updated, non-fork repositories. It does not inspect private repositories, execute builds, or claim to be a complete security audit. The coding workflow can write only to repositories explicitly selected in the fine-grained token.
+| Phase | Status | Evidence / remaining work |
+|---|---|---|
+| 1. Daily monitoring | Implemented; scheduled runs have succeeded | Keep checking scheduled run history |
+| 2. Repository intelligence | Implemented in workflows; latest expanded audit awaits a live run | Confirm all owned public repositories are included and review findings |
+| 3. Prioritisation | Partially implemented | Audit requests P1/P2/P3 severity, evidence, confidence and next action; add issue labels and resolution tracking |
+| 4. Autonomous fixes | Implemented but blocked pending token | Add `GH_AGENT_TOKEN` with the permissions above, then validate a draft PR end-to-end |
+| 5. Verification | Partial | Existing whitespace, Python/JavaScript syntax and conditional Python unit checks; add project-specific CI/build verification |
+| 6. Continuous improvement | Not implemented | Track accepted/rejected proposals, repeat failures and health trends across runs |
+
+## Current scope and limitations
+
+- The portfolio audit reads repositories visible to the workflow token; the default workflow token reliably covers the current public-repository scope, not arbitrary private repositories.
+- The audit inspects metadata and bounded excerpts; it does not execute builds, run tests, inspect full dependency trees or perform a complete security review.
+- Recent Actions history may be unavailable for repositories with Actions disabled or inaccessible.
+- The coding workflow can write only to repositories explicitly selected in the fine-grained token.
+- A successful model response is not proof that a code change is correct. Review every draft PR and its CI results before merging.
