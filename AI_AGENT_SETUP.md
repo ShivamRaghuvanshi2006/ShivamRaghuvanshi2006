@@ -57,7 +57,7 @@ The workflows now prefer an Actions secret named `GROQ_API_KEY` and fall back to
 | 3. Prioritisation | Partially implemented | Portfolio audit produces P1/P2/P3 findings with evidence and confidence; automated labels, deduplication of individual findings and resolution tracking remain |
 | 4. Autonomous fixes | Implemented; credential-gated and not yet revalidated after latest workflow edits | Add `GH_AGENT_TOKEN` with the permissions above, then run one small issue through branch push and draft PR creation |
 | 5. Verification | Partial | Coding workflow includes whitespace checks, Python/JavaScript syntax checks and Python unittest discovery for `tests/` or `test/`; project-specific build/CI checks remain |
-| 6. Continuous improvement | Not implemented | Track accepted/rejected proposals, repeat failures and health trends across runs |
+| 6. Continuous improvement | Not implemented | Add feedback-history capture for prior AI draft PR outcomes, then measure acceptance/rejection and recurring failures over time |
 
 ## Current scope and limitations
 
