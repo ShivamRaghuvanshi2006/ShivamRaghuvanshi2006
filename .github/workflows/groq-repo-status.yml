@@ -48,30 +48,39 @@ jobs:
           runs_raw="$(gh api "repos/$GITHUB_REPOSITORY/actions/runs?per_page=20")"
           workflows_raw="$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows?per_page=100")"
 
+          printf '%s' "$repo_data" > "$RUNNER_TEMP/repo.json"
+          printf '%s' "$root_data" > "$RUNNER_TEMP/root.json"
+          printf '%s' "$issues_raw" > "$RUNNER_TEMP/issues.json"
+          printf '%s' "$pulls_raw" > "$RUNNER_TEMP/pulls.json"
+          printf '%s' "$commits_raw" > "$RUNNER_TEMP/commits.json"
+          printf '%s' "$releases_raw" > "$RUNNER_TEMP/releases.json"
+          printf '%s' "$runs_raw" > "$RUNNER_TEMP/runs.json"
+          printf '%s' "$workflows_raw" > "$RUNNER_TEMP/workflows.json"
+
           audit="$(jq -n \
-            --argjson repo "$repo_data" \
-            --argjson root "$root_data" \
-            --argjson issues "$issues_raw" \
-            --argjson pulls "$pulls_raw" \
-            --argjson commits "$commits_raw" \
-            --argjson releases "$releases_raw" \
-            --argjson runs "$runs_raw" \
-            --argjson workflows "$workflows_raw" \
+            --slurpfile repo "$RUNNER_TEMP/repo.json" \
+            --slurpfile root "$RUNNER_TEMP/root.json" \
+            --slurpfile issues "$RUNNER_TEMP/issues.json" \
+            --slurpfile pulls "$RUNNER_TEMP/pulls.json" \
+            --slurpfile commits "$RUNNER_TEMP/commits.json" \
+            --slurpfile releases "$RUNNER_TEMP/releases.json" \
+            --slurpfile runs "$RUNNER_TEMP/runs.json" \
+            --slurpfile workflows "$RUNNER_TEMP/workflows.json" \
             --arg since "$since" \
             --arg stale_before "$stale_before" \
             '
-            ($root | map(.name)) as $entries |
+            ($root[0] | map(.name)) as $entries |
             ($entries | map(select(. != null))) as $files |
             {
               repository: {
-                name: $repo.full_name,
-                description: $repo.description,
-                default_branch: $repo.default_branch,
-                primary_language: $repo.language,
-                archived: $repo.archived,
-                stars: $repo.stargazers_count,
-                open_issue_count: $repo.open_issues_count,
-                last_push: $repo.pushed_at
+                name: $repo[0].full_name,
+                description: $repo[0].description,
+                default_branch: $repo[0].default_branch,
+                primary_language: $repo[0].language,
+                archived: $repo[0].archived,
+                stars: $repo[0].stargazers_count,
+                open_issue_count: $repo[0].open_issues_count,
+                last_push: $repo[0].pushed_at
               },
               documentation_checks: {
                 readme_present: (($files | map(ascii_downcase) | any(. == "readme.md" or . == "readme"))),
@@ -87,26 +96,26 @@ jobs:
                 )))
               },
               automation: {
-                workflow_count: ($workflows.total_count // 0),
-                workflows: [($workflows.workflows // [])[] | {name,path,state}],
-                recent_runs: [($runs.workflow_runs // [])[:20][] |
+                workflow_count: ($workflows[0].total_count // 0),
+                workflows: [($workflows[0].workflows // [])[:25][] | {name,path,state}],
+                recent_runs: [($runs[0].workflow_runs // [])[:10][] |
                   {name,status,conclusion,created_at,url:.html_url}],
                 failed_runs_last_7_days: [($runs.workflow_runs // [])[] |
                   select(.created_at >= $since and .conclusion == "failure") |
                   {name,created_at,url:.html_url}]
               },
               maintenance: {
-                stale_open_issues: [$issues[] |
+                stale_open_issues: [$issues[0][] |
                   select(has("pull_request") | not) |
                   select(.updated_at < $stale_before) |
-                  {number,title,updated_at,url:.html_url}],
-                stale_open_pull_requests: [$pulls[] |
+                  {number,title,updated_at,url:.html_url}] | .[:10] | .[:10],
+                stale_open_pull_requests: [$pulls[0][] |
                   select(.updated_at < $stale_before) |
                   {number,title,updated_at,url:.html_url}]
               },
               recent_activity: {
-                commits: [$commits[] | {sha:(.sha[:8]),message:(.commit.message | split("\n")[0]),date:.commit.author.date}],
-                releases: [$releases[] |
+                commits: [$commits[0][] | {sha:(.sha[:8]),message:(.commit.message | split("\n")[0]),date:.commit.author.date}] | .[:10],
+                releases: [$releases[0][] |
                   select((.published_at // "") >= $since) |
                   {name,tag_name,published_at,url:.html_url}]
               }
