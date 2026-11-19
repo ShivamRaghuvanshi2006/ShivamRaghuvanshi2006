@@ -14,7 +14,7 @@ GitHub may delay scheduled workflows. The audit is read-only and does not execut
 
 ## One-time setup for cross-repository coding
 
-The coding workflow needs a fine-grained GitHub Personal Access Token because the default `GITHUB_TOKEN` cannot write to other repositories.
+The coding workflow needs a fine-grained GitHub Personal Access Token because the default `GITHUB_TOKEN` cannot write to other repositories. The workflow now serializes runs per target repository/issue and has a 20-minute timeout.
 
 1. Open **Settings → Developer settings → Personal access tokens → Fine-grained tokens**.
 2. Create a token with your account as the resource owner.
@@ -52,11 +52,11 @@ The workflows now prefer an Actions secret named `GROQ_API_KEY` and fall back to
 
 | Phase | Status | Evidence / remaining work |
 |---|---|---|
-| 1. Daily monitoring | Implemented; scheduled runs have succeeded | Keep checking scheduled run history |
-| 2. Repository intelligence | Implemented and live-tested | Expanded audit successfully inspected 11 public, non-fork repositories; review findings and confirm coverage on future runs |
-| 3. Prioritisation | Partially implemented | Audit requests P1/P2/P3 severity, evidence, confidence and next action; add issue labels and resolution tracking |
-| 4. Autonomous fixes | Implemented but blocked pending token | Add `GH_AGENT_TOKEN` with the permissions above, then validate a draft PR end-to-end |
-| 5. Verification | Partial | Existing whitespace, Python/JavaScript syntax and conditional Python unit checks; add project-specific CI/build verification |
+| 1. Daily monitoring | Implemented and live-tested | The enhanced daily health workflow completed successfully on 19 November and created/updated one dated report issue |
+| 2. Repository intelligence | Implemented and live-tested | Expanded portfolio audit successfully inspected 11 public, non-fork repositories and published findings in issue #31 |
+| 3. Prioritisation | Partially implemented | Portfolio audit produces P1/P2/P3 findings with evidence and confidence; automated labels, deduplication of individual findings and resolution tracking remain |
+| 4. Autonomous fixes | Implemented; credential-gated and not yet revalidated after latest workflow edits | Add `GH_AGENT_TOKEN` with the permissions above, then run one small issue through branch push and draft PR creation |
+| 5. Verification | Partial | Coding workflow includes whitespace checks, Python/JavaScript syntax checks and Python unittest discovery for `tests/` or `test/`; project-specific build/CI checks remain |
 | 6. Continuous improvement | Not implemented | Track accepted/rejected proposals, repeat failures and health trends across runs |
 
 ## Current scope and limitations
