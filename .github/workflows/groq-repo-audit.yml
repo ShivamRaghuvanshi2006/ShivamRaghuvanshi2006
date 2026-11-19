@@ -102,13 +102,35 @@ jobs:
 
           report="$(jq -er '.choices[0].message.content | select(type == "string" and length > 0)' <<< "$response")"
           body="$(printf '**Repositories inspected:** %s public, non-fork repositories\n\n%s\n\n---\n_Automated read-only portfolio audit. It does not execute code or perform a full security review._' "$repo_count" "$report")"
+          priority=""
+          if grep -Eq '(^|[^[:alnum:]])P1([^[:alnum:]]|$)' <<< "$report"; then
+            priority="priority:P1"
+          elif grep -Eq '(^|[^[:alnum:]])P2([^[:alnum:]]|$)' <<< "$report"; then
+            priority="priority:P2"
+          elif grep -Eq '(^|[^[:alnum:]])P3([^[:alnum:]]|$)' <<< "$report"; then
+            priority="priority:P3"
+          fi
+
+          gh label create "automated-report" --repo "$GITHUB_REPOSITORY" --color "1d76db" --description "Generated repository audit report" --force
+          gh label create "priority:P1" --repo "$GITHUB_REPOSITORY" --color "b60205" --description "Highest-priority audit finding" --force
+          gh label create "priority:P2" --repo "$GITHUB_REPOSITORY" --color "d93f0b" --description "Medium-priority audit finding" --force
+          gh label create "priority:P3" --repo "$GITHUB_REPOSITORY" --color "fbca04" --description "Low-priority audit finding" --force
+
           title="[repo-audit] $today"
           existing="$(gh issue list --repo "$GITHUB_REPOSITORY" --state all --search "\"$title\" in:title" --json number --jq '.[0].number // empty')"
 
           if [ -n "$existing" ]; then
             gh issue comment "$existing" --repo "$GITHUB_REPOSITORY" --body "$body"
+            gh issue edit "$existing" --repo "$GITHUB_REPOSITORY" --add-label "automated-report"
+            if [ -n "$priority" ]; then
+              gh issue edit "$existing" --repo "$GITHUB_REPOSITORY" --add-label "$priority"
+            fi
             echo "Updated existing audit issue #$existing."
           else
-            gh issue create --repo "$GITHUB_REPOSITORY" --title "$title" --body "$body"
+            if [ -n "$priority" ]; then
+              gh issue create --repo "$GITHUB_REPOSITORY" --title "$title" --body "$body" --label "automated-report" --label "$priority"
+            else
+              gh issue create --repo "$GITHUB_REPOSITORY" --title "$title" --body "$body" --label "automated-report"
+            fi
             echo "Created repository audit issue."
           fi
