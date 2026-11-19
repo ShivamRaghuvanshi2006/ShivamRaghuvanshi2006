@@ -53,7 +53,7 @@ jobs:
             --arg since "$since" \
             --arg stale_before "$stale_before" \
             '
-            ($root | map(select(.type == "file") | .name)) as $files |
+            ($root | map(.name)) as $entries |\n            ($entries | map(select(. != null))) as $files |
             {
               repository: {
                 name: $repo.full_name,
@@ -70,7 +70,7 @@ jobs:
                 license_present: (($files | map(ascii_downcase) | any(startswith("license")))),
                 contributing_present: (($files | map(ascii_downcase) | any(startswith("contributing")))),
                 code_of_conduct_present: (($files | map(ascii_downcase) | any(startswith("code_of_conduct")))),
-                codeowners_present: (($files | map(ascii_downcase) | any(. == "codeowners" or . == ".github"))),
+                root_codeowners_present: (($files | map(ascii_downcase) | any(. == "codeowners"))),\n                test_directory_present: (($files | map(ascii_downcase) | any(. == "test" or . == "tests" or . == "spec"))),
                 dependency_manifests: ($files | map(select(
                   . == "package.json" or . == "pom.xml" or . == "build.gradle" or
                   . == "build.gradle.kts" or . == "requirements.txt" or . == "pyproject.toml" or
