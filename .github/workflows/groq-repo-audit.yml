@@ -57,7 +57,7 @@ jobs:
             runs="$(jq '[.workflow_runs[]? | {name,conclusion,created_at}] | .[:3]' <<< "$runs_raw")"
 
             commits_raw="$(gh api "repos/$full_name/commits?per_page=5" 2>/dev/null || printf '[]')"
-            commits="$(jq '[.[]? | {sha:(.sha[:8]),message:(.commit.message | split("\n")[0]),date:.commit.author.date}]' <<< "$commits_raw")"
+            commits="$(jq '[.[]? | {sha:(.sha[:8]),message:(.commit.message | split("\n")[0] | .[:90]),date:.commit.author.date}] | .[:3]' <<< "$commits_raw")"
 
             records+=("$(jq -n \
               --argjson repo "$repo_json" \
@@ -69,13 +69,9 @@ jobs:
               '{
                 repository:{
                   name:$repo.full_name,
-                  description:$repo.description,
                   default_branch:$repo.default_branch,
                   language:$repo.language,
-                  stars:$repo.stargazers_count,
-                  updated_at:$repo.updated_at,
-                  pushed_at:$repo.pushed_at,
-                  size_kb:$repo.size
+                  pushed_at:$repo.pushed_at
                 },
                 root_files:$root,
                 readme_excerpt:$readme,
