@@ -79,7 +79,8 @@ jobs:
                 primary_language: $repo[0].language,
                 archived: $repo[0].archived,
                 stars: $repo[0].stargazers_count,
-                open_issue_count: $repo[0].open_issues_count,
+                open_issue_count: ([$issues[0][] | select(has("pull_request") | not)] | length),
+                open_pull_request_count: ($pulls[0] | length),
                 last_push: $repo[0].pushed_at
               },
               documentation_checks: {
@@ -87,9 +88,9 @@ jobs:
                 license_present: (($files | map(ascii_downcase) | any(startswith("license")))),
                 contributing_present: (($files | map(ascii_downcase) | any(startswith("contributing")))),
                 code_of_conduct_present: (($files | map(ascii_downcase) | any(startswith("code_of_conduct")))),
-                root_codeowners_present: (($files | map(ascii_downcase) | any(. == "codeowners"))),
-                test_directory_present: (($files | map(ascii_downcase) | any(. == "test" or . == "tests" or . == "spec"))),
-                dependency_manifests: ($files | map(select(
+                github_directory_present: (($files | map(ascii_downcase) | any(. == ".github"))),
+                root_test_directory_present: (($files | map(ascii_downcase) | any(. == "test" or . == "tests" or . == "spec"))),
+                root_dependency_manifests: ($files | map(select(
                   . == "package.json" or . == "pom.xml" or . == "build.gradle" or
                   . == "build.gradle.kts" or . == "requirements.txt" or . == "pyproject.toml" or
                   . == "Cargo.toml" or . == "go.mod" or . == "composer.json"
@@ -100,6 +101,10 @@ jobs:
                 workflows: [($workflows[0].workflows // [])[:25][] | {name,path,state}],
                 recent_runs: [($runs[0].workflow_runs // [])[:10][] |
                   {name,status,conclusion,created_at,url:.html_url}],
+                latest_runs_by_workflow: [
+                  ($runs[0].workflow_runs // []) | group_by(.name)[] |
+                  max_by(.created_at) | {name,conclusion,created_at,url:.html_url}
+                ],
                 failed_runs_last_7_days: [($runs[0].workflow_runs // [])[] |
                   select(.created_at >= $since and .conclusion == "failure") |
                   {name,created_at,url:.html_url}]
@@ -129,7 +134,7 @@ jobs:
               messages:[
                 {
                   role:"system",
-                  content:"You are a repository maintenance analyst. Report only findings supported by the supplied GitHub API data. Separate confirmed problems from optional recommendations. Highlight failed CI runs, missing project documentation, stale issues or pull requests, and repository activity. Do not claim a dependency is vulnerable or outdated because versions and advisories were not checked. Do not invent tests, files, or failures. If a category has no findings, say so. Finish with at most three prioritized next actions. Use concise Markdown and stay under 450 words."
+                  content:"You are a strict repository health analyst. Use only explicit fields in the supplied JSON; do not infer unobserved facts. Distinguish historical failures from current status: use latest_runs_by_workflow, and call a workflow currently failing only if its latest run has conclusion failure. Older failures followed by a later success are resolved historical failures. Do not count this currently executing report run because it is not yet present in the API snapshot. Report actual open_issue_count separately from open_pull_request_count. Documentation and test checks refer ONLY to root-level files/directories; never claim nested paths are absent. Do not claim tests passed, code executed, dependency vulnerabilities, missing README badges, or missing releases unless the JSON explicitly proves it. Separate confirmed findings from optional recommendations. Include up to three prioritized next actions. If no confirmed problem remains, say so. Keep under 300 words."
                 },
                 {
                   role:"user",
