@@ -79,7 +79,8 @@ jobs:
                   has_license:([$root[]|ascii_downcase|select(startswith("license"))]|length>0),
                   has_tests:([$root[]|ascii_downcase|select(. == "test" or . == "tests" or . == "spec")]|length>0),
                   open_issue_sample_count:($issues|length),
-                  recent_failed_action_runs:([$runs[]|select(.conclusion == "failure")]|length),
+                  latest_action_name:($runs[0].name // null),
+                  latest_action_conclusion:($runs[0].conclusion // null),
                   recent_commit_count:($commits|length)
                 },
                 root_files:$root,
@@ -117,7 +118,7 @@ jobs:
             -d "$request")"
 
           report="$(jq -er '.choices[0].message.content | select(type == "string" and length > 0)' <<< "$response")"
-          body="$(printf '%s\n\n---\n_Automated read-only portfolio audit. It inspected %s public, non-fork repositories. It does not execute code or perform a full security review._' "$report" "$repo_count")"
+          body="$(printf '**Repositories inspected:** %s public, non-fork repositories\n\n%s\n\n---\n_Automated read-only portfolio audit. It does not execute code or perform a full security review._' "$repo_count" "$report")"
           title="[repo-audit] $today"
           existing="$(gh issue list --repo "$GITHUB_REPOSITORY" --state all --search "\"$title\" in:title" --json number --jq '.[0].number // empty')"
 
