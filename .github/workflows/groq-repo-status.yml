@@ -108,10 +108,10 @@ jobs:
                 stale_open_issues: [$issues[0][] |
                   select(has("pull_request") | not) |
                   select(.updated_at < $stale_before) |
-                  {number,title,updated_at,url:.html_url}] | .[:10] | .[:10],
+                  {number,title,updated_at,url:.html_url}] | .[:10],
                 stale_open_pull_requests: [$pulls[0][] |
                   select(.updated_at < $stale_before) |
-                  {number,title,updated_at,url:.html_url}]
+                  {number,title,updated_at,url:.html_url}] | .[:10]
               },
               recent_activity: {
                 commits: [$commits[0][] | {sha:(.sha[:8]),message:(.commit.message | split("\n")[0]),date:.commit.author.date}] | .[:10],
