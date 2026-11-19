@@ -44,7 +44,8 @@ The workflows now prefer an Actions secret named `GROQ_API_KEY` and fall back to
 - The agent may replace at most two existing source/documentation files.
 - It cannot create, rename or delete files, or edit GitHub workflows, secrets, dependency manifests, lockfiles, build/deployment configuration, permissions or licensing.
 - Files containing credential-like values are excluded from the code context sent to Groq.
-- It runs whitespace checks, available Python/JavaScript syntax checks, and the Python unittest suite when applicable.
+- It runs whitespace checks, available Python/JavaScript syntax checks, and Python unittest discovery when Python files change and a root `tests/` or `test/` directory exists.
+- The coding prompt receives up to 10 prior AI draft PR outcomes (merged or closed) as cautious feedback; it does not assume why a PR was closed.
 - It creates a separate branch and a **draft** pull request. It never merges.
 - If the task is ambiguous, unsafe, too large, or the model cannot produce a valid bounded patch, the workflow stops without opening a PR.
 
@@ -57,7 +58,7 @@ The workflows now prefer an Actions secret named `GROQ_API_KEY` and fall back to
 | 3. Prioritisation | Partially implemented | Portfolio audit produces P1/P2/P3 findings with evidence and confidence; automated labels, deduplication of individual findings and resolution tracking remain |
 | 4. Autonomous fixes | Implemented; credential-gated and not yet revalidated after latest workflow edits | Add `GH_AGENT_TOKEN` with the permissions above, then run one small issue through branch push and draft PR creation |
 | 5. Verification | Partial | Coding workflow includes whitespace checks, Python/JavaScript syntax checks and Python unittest discovery for `tests/` or `test/`; project-specific build/CI checks remain |
-| 6. Continuous improvement | Not implemented | Add feedback-history capture for prior AI draft PR outcomes, then measure acceptance/rejection and recurring failures over time |
+| 6. Continuous improvement | Not implemented | Coding workflow now reads up to 10 prior AI draft PR outcomes; acceptance metrics and recurring-failure trends remain |
 
 ## Current scope and limitations
 
