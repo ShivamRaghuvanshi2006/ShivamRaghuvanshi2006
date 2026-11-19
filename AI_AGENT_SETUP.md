@@ -53,7 +53,7 @@ The workflows now prefer an Actions secret named `GROQ_API_KEY` and fall back to
 | Phase | Status | Evidence / remaining work |
 |---|---|---|
 | 1. Daily monitoring | Implemented; scheduled runs have succeeded | Keep checking scheduled run history |
-| 2. Repository intelligence | Implemented in workflows; latest expanded audit awaits a live run | Confirm all owned public repositories are included and review findings |
+| 2. Repository intelligence | Implemented and live-tested | Expanded audit successfully inspected 11 public, non-fork repositories; review findings and confirm coverage on future runs |
 | 3. Prioritisation | Partially implemented | Audit requests P1/P2/P3 severity, evidence, confidence and next action; add issue labels and resolution tracking |
 | 4. Autonomous fixes | Implemented but blocked pending token | Add `GH_AGENT_TOKEN` with the permissions above, then validate a draft PR end-to-end |
 | 5. Verification | Partial | Existing whitespace, Python/JavaScript syntax and conditional Python unit checks; add project-specific CI/build verification |
@@ -62,7 +62,7 @@ The workflows now prefer an Actions secret named `GROQ_API_KEY` and fall back to
 ## Current scope and limitations
 
 - The portfolio audit reads repositories visible to the workflow token; the default workflow token reliably covers the current public-repository scope, not arbitrary private repositories.
-- The audit inspects metadata and bounded excerpts; it does not execute builds, run tests, inspect full dependency trees or perform a complete security review.
+- The audit inspects root-level file names and selected repository/Actions metadata; it does not read full source files, execute builds, run tests, inspect full dependency trees or perform a complete security review.
 - Recent Actions history may be unavailable for repositories with Actions disabled or inaccessible.
 - The coding workflow can write only to repositories explicitly selected in the fine-grained token.
 - A successful model response is not proof that a code change is correct. Review every draft PR and its CI results before merging.
