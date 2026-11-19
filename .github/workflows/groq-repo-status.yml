@@ -2,6 +2,9 @@ name: Daily Repo Status
 
 on:
   workflow_dispatch:
+  push:
+    paths:
+      - ".github/workflows/groq-repo-status.yml"
   schedule:
     - cron: "30 3 * * *"
 
