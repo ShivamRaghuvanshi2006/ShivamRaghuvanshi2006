@@ -11,6 +11,10 @@ permissions:
   pull-requests: read
   actions: read
 
+concurrency:
+  group: daily-repository-status
+  cancel-in-progress: false
+
 jobs:
   report:
     runs-on: ubuntu-latest
@@ -130,9 +134,13 @@ jobs:
 
           report="$(jq -er '.choices[0].message.content | select(type == "string" and length > 0)' <<< "$response")"
 
-          gh issue create \
-            --repo "$GITHUB_REPOSITORY" \
-            --title "[repo-health] $(date -u +%Y-%m-%d)" \
-            --body "$report"
+          title="[repo-health] $(date -u +%Y-%m-%d)"
+          existing="$(gh issue list --repo "$GITHUB_REPOSITORY" --state all --search "\"$title\" in:title" --json number --jq '.[0].number // empty')"
 
-          echo "Repository health audit successfully created."
+          if [ -n "$existing" ]; then
+            gh issue comment "$existing" --repo "$GITHUB_REPOSITORY" --body "$report"
+            echo "Updated existing daily health issue #$existing."
+          else
+            gh issue create --repo "$GITHUB_REPOSITORY" --title "$title" --body "$report"
+            echo "Created daily health issue."
+          fi
