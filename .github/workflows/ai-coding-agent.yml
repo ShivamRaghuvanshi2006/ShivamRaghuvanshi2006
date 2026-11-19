@@ -23,7 +23,7 @@ jobs:
       contents: read
     env:
       GH_TOKEN: ${{ secrets.GH_AGENT_TOKEN }}
-      GROQ_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      GROQ_API_KEY: ${{ secrets.GROQ_API_KEY || secrets.GEMINI_API_KEY }}
       TARGET_REPOSITORY: ${{ inputs.repository }}
       ISSUE_NUMBER: ${{ inputs.issue_number }}
     steps:
