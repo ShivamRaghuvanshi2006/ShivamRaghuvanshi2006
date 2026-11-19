@@ -9,12 +9,13 @@ permissions:
   contents: read
   issues: write
   pull-requests: read
+  actions: read
 
 jobs:
   report:
     runs-on: ubuntu-latest
     steps:
-      - name: Generate repository report
+      - name: Audit repository health and generate report
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
@@ -29,37 +30,92 @@ jobs:
           fi
 
           since="$(date -u -d '7 days ago' '+%Y-%m-%dT%H:%M:%SZ')"
+          stale_before="$(date -u -d '30 days ago' '+%Y-%m-%dT%H:%M:%SZ')"
 
-          issues_raw="$(gh api "repos/$GITHUB_REPOSITORY/issues?state=all&since=$since&per_page=10")"
-          pulls_raw="$(gh api "repos/$GITHUB_REPOSITORY/pulls?state=all&sort=updated&direction=desc&per_page=10")"
+          repo_data="$(gh api "repos/$GITHUB_REPOSITORY")"
+          root_data="$(gh api "repos/$GITHUB_REPOSITORY/contents")"
+          issues_raw="$(gh api "repos/$GITHUB_REPOSITORY/issues?state=open&per_page=100")"
+          pulls_raw="$(gh api "repos/$GITHUB_REPOSITORY/pulls?state=open&per_page=100")"
           commits_raw="$(gh api "repos/$GITHUB_REPOSITORY/commits?since=$since&per_page=10")"
           releases_raw="$(gh api "repos/$GITHUB_REPOSITORY/releases?per_page=5")"
+          runs_raw="$(gh api "repos/$GITHUB_REPOSITORY/actions/runs?per_page=20")"
+          workflows_raw="$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows?per_page=100")"
 
-          issues="$(jq --arg since "$since" '[.[] | select(has("pull_request") | not) | select(.updated_at >= $since) | {number,title,state,url:.html_url}]' <<< "$issues_raw")"
-          pulls="$(jq --arg since "$since" '[.[] | select(.updated_at >= $since) | {number,title,state,url:.html_url}]' <<< "$pulls_raw")"
-          commits="$(jq '[.[] | {sha:(.sha[:8]),message:(.commit.message | split("\n")[0]),date:.commit.author.date}]' <<< "$commits_raw")"
-          releases="$(jq --arg since "$since" '[.[] | select((.published_at // "") >= $since) | {name,tag_name,published_at,url:.html_url}]' <<< "$releases_raw")"
-
-          activity="$(jq -n \
-            --argjson issues "$issues" \
-            --argjson pulls "$pulls" \
-            --argjson commits "$commits" \
-            --argjson releases "$releases" \
-            '{issues:$issues,pull_requests:$pulls,commits:$commits,releases:$releases}')"
+          audit="$(jq -n \
+            --argjson repo "$repo_data" \
+            --argjson root "$root_data" \
+            --argjson issues "$issues_raw" \
+            --argjson pulls "$pulls_raw" \
+            --argjson commits "$commits_raw" \
+            --argjson releases "$releases_raw" \
+            --argjson runs "$runs_raw" \
+            --argjson workflows "$workflows_raw" \
+            --arg since "$since" \
+            --arg stale_before "$stale_before" \
+            '
+            ($root | map(select(.type == "file") | .name)) as $files |
+            {
+              repository: {
+                name: $repo.full_name,
+                description: $repo.description,
+                default_branch: $repo.default_branch,
+                primary_language: $repo.language,
+                archived: $repo.archived,
+                stars: $repo.stargazers_count,
+                open_issue_count: $repo.open_issues_count,
+                last_push: $repo.pushed_at
+              },
+              documentation_checks: {
+                readme_present: (($files | map(ascii_downcase) | any(. == "readme.md" or . == "readme"))),
+                license_present: (($files | map(ascii_downcase) | any(startswith("license")))),
+                contributing_present: (($files | map(ascii_downcase) | any(startswith("contributing")))),
+                code_of_conduct_present: (($files | map(ascii_downcase) | any(startswith("code_of_conduct")))),
+                codeowners_present: (($files | map(ascii_downcase) | any(. == "codeowners" or . == ".github"))),
+                dependency_manifests: ($files | map(select(
+                  . == "package.json" or . == "pom.xml" or . == "build.gradle" or
+                  . == "build.gradle.kts" or . == "requirements.txt" or . == "pyproject.toml" or
+                  . == "Cargo.toml" or . == "go.mod" or . == "composer.json"
+                )))
+              },
+              automation: {
+                workflow_count: ($workflows.total_count // 0),
+                workflows: [($workflows.workflows // [])[] | {name,path,state}],
+                recent_runs: [($runs.workflow_runs // [])[:20][] |
+                  {name,status,conclusion,created_at,url:.html_url}],
+                failed_runs_last_7_days: [($runs.workflow_runs // [])[] |
+                  select(.created_at >= $since and .conclusion == "failure") |
+                  {name,created_at,url:.html_url}]
+              },
+              maintenance: {
+                stale_open_issues: [$issues[] |
+                  select(has("pull_request") | not) |
+                  select(.updated_at < $stale_before) |
+                  {number,title,updated_at,url:.html_url}],
+                stale_open_pull_requests: [$pulls[] |
+                  select(.updated_at < $stale_before) |
+                  {number,title,updated_at,url:.html_url}]
+              },
+              recent_activity: {
+                commits: [$commits[] | {sha:(.sha[:8]),message:(.commit.message | split("\n")[0]),date:.commit.author.date}],
+                releases: [$releases[] |
+                  select((.published_at // "") >= $since) |
+                  {name,tag_name,published_at,url:.html_url}]
+              }
+            }')"
 
           request="$(jq -n \
-            --argjson activity "$activity" \
+            --argjson audit "$audit" \
             '{
               model:"openai/gpt-oss-20b",
-              max_completion_tokens:700,
+              max_completion_tokens:900,
               messages:[
                 {
                   role:"system",
-                  content:"Write a concise factual GitHub repository report using only the supplied JSON. Never invent activity or blockers. Mention empty categories briefly. Include two or three useful next steps only when supported by evidence. Use Markdown and stay under 350 words."
+                  content:"You are a repository maintenance analyst. Report only findings supported by the supplied GitHub API data. Separate confirmed problems from optional recommendations. Highlight failed CI runs, missing project documentation, stale issues or pull requests, and repository activity. Do not claim a dependency is vulnerable or outdated because versions and advisories were not checked. Do not invent tests, files, or failures. If a category has no findings, say so. Finish with at most three prioritized next actions. Use concise Markdown and stay under 450 words."
                 },
                 {
                   role:"user",
-                  content:("Summarize the last seven days of repository activity:\n" + ($activity | tojson))
+                  content:("Audit this repository and summarize its health:\n" + ($audit | tojson))
                 }
               ]
             }')"
@@ -74,7 +130,7 @@ jobs:
 
           gh issue create \
             --repo "$GITHUB_REPOSITORY" \
-            --title "[repo-status] $(date -u +%Y-%m-%d)" \
+            --title "[repo-health] $(date -u +%Y-%m-%d)" \
             --body "$report"
 
-          echo "Repository report successfully created."
+          echo "Repository health audit successfully created."
