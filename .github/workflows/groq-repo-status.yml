@@ -100,7 +100,7 @@ jobs:
                 workflows: [($workflows[0].workflows // [])[:25][] | {name,path,state}],
                 recent_runs: [($runs[0].workflow_runs // [])[:10][] |
                   {name,status,conclusion,created_at,url:.html_url}],
-                failed_runs_last_7_days: [($runs.workflow_runs // [])[] |
+                failed_runs_last_7_days: [($runs[0].workflow_runs // [])[] |
                   select(.created_at >= $since and .conclusion == "failure") |
                   {name,created_at,url:.html_url}]
               },
