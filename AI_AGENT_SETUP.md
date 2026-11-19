@@ -56,7 +56,7 @@ The workflows now prefer an Actions secret named `GROQ_API_KEY` and fall back to
 | 1. Daily monitoring | Implemented and live-tested | The enhanced daily health workflow completed successfully on 19 November and created/updated one dated report issue |
 | 2. Repository intelligence | Implemented and live-tested | Expanded portfolio audit successfully inspected 11 public, non-fork repositories and published findings in issue #31 |
 | 3. Prioritisation | Partially implemented | Audit publishes P1/P2/P3 findings and automatically labels reports; per-finding deduplication and resolution tracking remain |
-| 4. Autonomous fixes | Implemented; credential-gated and not yet revalidated after latest workflow edits | Add `GH_AGENT_TOKEN` with the permissions above, then run one small issue through branch push and draft PR creation |
+| 4. Autonomous fixes | Implemented; YAML validated, cross-repository write test pending | Add `GH_AGENT_TOKEN` with the permissions above, then run one small issue through branch push and draft PR creation |
 | 5. Verification | Partial | Dedicated YAML parser checks workflow files on changes; coding agent includes whitespace checks, Python/JavaScript syntax checks and conditional Python unittest discovery. Project-specific build/CI checks remain |
 | 6. Continuous improvement | Partially implemented | Coding workflow reads up to 10 prior AI draft PR outcomes; acceptance metrics and recurring-failure trends remain |
 
